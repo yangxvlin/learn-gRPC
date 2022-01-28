@@ -23,7 +23,7 @@ dependencies {
     configurations.implementation.setCanBeResolved(true)
 }
 
-// tell gradle to generate all protocol buffer files
+// In the protobuf plug-in, we need to specify the protobuf compiler version and protobuf Java executable version.
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:3.2.0"
