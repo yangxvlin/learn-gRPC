@@ -1,0 +1,19 @@
+syntax = "proto3"; // protocol buffer version
+
+package ecommerce; // Package names are used to prevent name clashes between protocol message types and code will be generated under ecommerce package
+
+service ProductInfo { // Definition of the service interface
+  rpc addProduct(Product) returns (ProductID); // rpc
+  rpc getProduct(ProductID) returns (Product); // rpc
+}
+
+message Product { // Definition of the message format/type of Product
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  float price = 4;
+}
+
+message ProductID { // Definition of the message format/type of ProductID.
+  string value = 1;
+}
