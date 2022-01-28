@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'com.google.protobuf' version '0.8.14'
+    id 'com.google.protobuf' version '0.8.14' // protocol buffer plugin
 }
 
 allprojects {
@@ -12,6 +12,7 @@ allprojects {
 
 def grpcVersion = '1.39.0'
 
+// some library for server
 dependencies {
     implementation 'com.google.protobuf:protobuf-gradle-plugin:0.8.0'
     implementation "io.grpc:grpc-netty:${grpcVersion}"
@@ -22,6 +23,7 @@ dependencies {
     configurations.implementation.setCanBeResolved(true)
 }
 
+// tell gradle to generate all protocol buffer files
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:3.2.0"
@@ -36,10 +38,9 @@ protobuf {
             grpc {}
         }
     }
-
-    // generatedFilesBaseDir = "$projectDir/gen"
 }
 
+// destination of generated java file
 sourceSets {
     main {
         java {
@@ -48,12 +49,3 @@ sourceSets {
         }
     }
 }
-
-//jar {
-//    manifest {
-//        attributes "Main-Class": "ecommerce.ProductInfoServer"
-//    }
-//    from {
-//        configurations.implementation.collect { it.isDirectory() ? it : zipTree(it) }
-//    }
-//}
