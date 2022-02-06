@@ -88,3 +88,5 @@ sequence of request (multiple request message), sequence of responses (multiple 
 - [client](ch02/src/main/java/ecommerce/client/OrderMgtClient.java)
 - [gRPC server](ch02/src/main/java/ecommerce/OrderMgtServer.java)
 
+
+## gRPC transmission in detail
