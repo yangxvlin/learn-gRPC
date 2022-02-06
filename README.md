@@ -16,12 +16,17 @@
       |client stub (client-side code)|simplifies the client-side communication with abstractions to hide low-level communication for different programming languages
 - on client's side, invoke server's function is as easy as make a local function call
 ### how to wrte gRPC code
+- [gradle configutation](./ch02/build.gradle)
 1. write protocol buffers file
+    - [proto_info.proto](ch02\src\main\proto\proto_info.proto)
 2. protoc your protocol buffers file to generate gRPC server-side and client-side code
+    - <img src="./imgs/1.jpg" width="70%"/>
 - how to develop a gRPC server
     1. Implement the service logic of the generated service skeleton by overriding the service base class.
+        - [service implementation](ch02\src\main\java\ecommerce\server\ProductInfoImpl.java)
     2. Run a gRPC server to listen for requests from clients and return the service responses
-- how to develop a gRPC client
+        - [gRPC server](ch02\src\main\java\ecommerce\ProductInfoServer.java)
+- how to develop a gRPC client ([example client](ch02\src\main\java\ecommerce\client\ProductInfoClient.java))
     1. Create a channel using remote server address
     2. Initialize blocking stub using the channel
     3. Call remote method using the blocking stub
@@ -55,4 +60,31 @@ https://dev.to//techschoolguru/config-gradle-to-generate-java-code-from-protobuf
 2. service definition changes are a complicated development process
 3. The ecosystem is relatively small
     - The support for gRPC in browser and mobile applications is still in the primitive stages.
+
+
+## gRPC communication pattern
+- sync v.s. async
+    - if synchronous message passing scenarios, can use gRPC
+    - if asynchronous message scenarios that may require persistent messaging, use MessageQueue
+- internal v.s. external
+    - if just internal usage, can use gRPC
+    - if expose to external world, use ReSTful/SOAP/GraphQL
+
+### Simple RPC (Unary RPC)
+single request, single response (single response message)
+- client直接stub.callMethod(), server直接返回value
+### Server-streaming RPC
+single request, sequence of responses (multiple response message)
+- client直接stub.callMethod(), server直接返回StreamObserver<返回的类型> (通过streamObserver.OnNext(request)来返回多个response)
+### Client-streaming RPC
+sequence of request (multiple request message), single responses
+- client直接通过StreamObserver<请求的类型>的onNext(request)来发送多个request, server直接返回value
+### Bidirectional-streaming RPC
+sequence of request (multiple request message), sequence of responses (multiple response message)
+- 双方都有StreamObserver<...>
+### 例子
+- [proto](./ch02/src/main/proto/order_management.proto)
+- [service implementation](ch02/src/main/java/ecommerce/server/OrderMgtServiceImpl.java)
+- [client](ch02/src/main/java/ecommerce/client/OrderMgtClient.java)
+- [gRPC server](ch02/src/main/java/ecommerce/OrderMgtServer.java)
 

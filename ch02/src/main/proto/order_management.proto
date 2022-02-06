@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto"; // Use this package to leverage the well-known types such as StringValue
+
+package ecommerce;
+
+service OrderManagement {
+  // simple rpc
+  rpc addOrder(Order) returns (google.protobuf.StringValue);
+  rpc getOrder(google.protobuf.StringValue) returns (Order);
+  // server streaming rpc
+  rpc searchOrders(google.protobuf.StringValue) returns (stream Order); // Defining server-side streaming by returning a stream of Order messages.
+  // client streaming rpc
+  rpc updateOrders(stream Order) returns (google.protobuf.StringValue);
+  // bi-directional streaming rpc
+  rpc processOrders(stream google.protobuf.StringValue) returns (stream CombinedShipment);
+}
+
+message Order {
+  string id = 1;
+  repeated string items = 2; // repeated is used to represent the fields that can be repeated 0+ times.
+  string description = 3;
+  float price = 4;
+  string destination = 5;
+}
+
+// multiple orders are packed in one shipment
+message CombinedShipment {
+  string id = 1;
+  string status = 2;
+  repeated Order ordersList = 3; // repeated is used to represent the fields that can be repeated 0+ times.
+}
