@@ -62,7 +62,7 @@ https://dev.to//techschoolguru/config-gradle-to-generate-java-code-from-protobuf
     - The support for gRPC in browser and mobile applications is still in the primitive stages.
 
 
-## gRPC communication pattern
+## gRPC communication pattern + message flow
 - sync v.s. async
     - if synchronous message passing scenarios, can use gRPC
     - if asynchronous message scenarios that may require persistent messaging, use MessageQueue
@@ -73,15 +73,19 @@ https://dev.to//techschoolguru/config-gradle-to-generate-java-code-from-protobuf
 ### Simple RPC (Unary RPC)
 single request, single response (single response message)
 - client直接stub.callMethod(), server直接返回value
+- <img src="./imgs/5.png" width="50%" />
 ### Server-streaming RPC
 single request, sequence of responses (multiple response message)
 - client直接stub.callMethod(), server直接返回StreamObserver<返回的类型> (通过streamObserver.OnNext(request)来返回多个response)
+- <img src="./imgs/6.jpg" width="50%" />
 ### Client-streaming RPC
 sequence of request (multiple request message), single responses
 - client直接通过StreamObserver<请求的类型>的onNext(request)来发送多个request, server直接返回value
+- <img src="./imgs/7.jpg" width="50%" />
 ### Bidirectional-streaming RPC
 sequence of request (multiple request message), sequence of responses (multiple response message)
 - 双方都有StreamObserver<...>
+- <img src="./imgs/8.jpg" width="50%" />
 ### 例子
 - [proto](./ch02/src/main/proto/order_management.proto)
 - [service implementation](ch02/src/main/java/ecommerce/server/OrderMgtServiceImpl.java)
@@ -89,4 +93,79 @@ sequence of request (multiple request message), sequence of responses (multiple 
 - [gRPC server](ch02/src/main/java/ecommerce/OrderMgtServer.java)
 
 
-## gRPC transmission in detail
+## gRPC communication flow in detail
+### gRPC transmission
+- <img src="./imgs/2.png" width="60%" />
+    
+    1. The client process calls the `getProduct` function in the generated stub.
+    2. The client stub creates an <u>HTTP POST</u> request with the encoded message _(using **Protocol buffer** to encode)_. **In gRPC, all requests are HTTP POST requests with content-type prefixed with application/grpc.** The remote function (/ProductInfo/getProduct) that it invokes is sent as a separate HTTP header.
+    3. The HTTP request message is sent across the network to the server machine.
+    4. When the message is received at the server, the server examines the message headers to see which service function needs to be called and hands over the message to the service stub.
+    5. The service stub decodes message bytes into language-specific data structures.
+    6. Then, using the decoded message, the service makes a local call to the getProduct function.
+    7. The response from the service function is encoded and sent back to the client. The response message follows the same procedure that we observed on the client side (response→encode→HTTP response on the wire); the message is unpacked and its value returned to the waiting client process.
+
+### gRPC over HTTP/2.0
+HTTP/2.0 builds a stream (long connection) between the client and server. frame (basic unit of data transmitted through HTTP/2.0) can be 1+(gRPC message splitted due to its size) gRPC length-prefixed message. 
+
+### request message
+[message structure in detail](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)
+
+- <img src="./imgs/3.jpg"  />
+- header
+    ```
+    HEADERS (flags = END_HEADERS)
+    :method = POST // Defines the HTTP method. For gRPC, this is always POST.
+    
+    :scheme = http // Defines the HTTP scheme. If TLS (Transport Level Security) is enabled, the scheme is set to “https,” otherwise it is “http.”
+    
+    :path = /ProductInfo/getProduct // Defines the endpoint path. For gRPC, this value is constructed as “/” {service name} “/” {method name}.
+    
+    :authority = abc.com // Defines the virtual hostname of the target URI.
+
+    te = trailers // Defines detection of incompatible proxies. For gRPC, the value must be “trailers.”
+
+    grpc-timeout = 1S // Defines call timeout. If not specified, the server should assume an infinite timeout.
+
+    content-type = application/grpc // For gRPC, the content-type should begin with application/grpc. If not, gRPC servers will respond with an HTTP status of 415 (Unsupported Media Type).
+    
+    grpc-encoding = gzip // Defines the message compression type. Possible values are identity, gzip, deflate, snappy, and {custom}.
+    
+    authorization = Bearer xxxxxx // This is optional metadata. authorization metadata is used to access the secure endpoint.
+    ```
+- length-prefixed message (+ EOS: end of stream flag message)
+    ```
+    DATA (flags = END_STREAM) // END_STREAM flag on the last DATA frame with empty Length-Prefixed Message to indicate the last message
+
+    <Length-Prefixed Message>
+    ```
+
+### response message
+[message structure in detail](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)
+
+- <img src="./imgs/4.jpg"/>
+- header
+    ```
+    HEADERS (flags = END_HEADERS)
+    :status = 200 // Indicates the status of the HTTP request.
+    
+    grpc-encoding = gzip // Defines the message compression type. Possible values include identity, gzip, deflate, snappy, and {custom}.
+    
+    content-type = application/grpc // For gRPC, the content-type should begin with application/grpc.
+    ```
+- length-prefixed message
+    ```
+    DATA // this time end message is defined as trailer, no need of END_STREAM flag
+
+    <Length-Prefixed Message>
+    ```
+- trailer
+    ```
+    HEADERS (flags = END_STREAM, END_HEADERS)
+    grpc-status = 0 # OK // Defines the gRPC status code.
+    grpc-message = xxxxxx // Defines the description of the error. This is optional. This is only set when there is an error in processing the request.
+    ```
+
+
+
+
